@@ -1,0 +1,16 @@
+{
+  "name": "aws-iot-cvm",
+  "version": "1.2.0",
+  "description": "Certificate Vending Machine (CVM) is an ideal fit for customers who do not have certificates pre-installed on the devices and are unable to obtain CA certificates to pre-create device certificates during their manufacturing process. On this occasion, you can use CVM system which allows the device to apply for their own certificate and then install the certificate into storage on the device. This document provides the design ideas and associated source code, which can help customers quickly develop a CVM system. Since the original IoT device does not contain a certificate for TLS mutual authentication, we need to pay attention to three points.",
+  "main": "index.js",
+  "scripts": {
+    "run": "node index.js"
+  },
+  "keywords": [
+    "aws",
+    "iot",
+    "certificate"
+  ],
+  "author": "cncoder",
+  "license": "Apache-2.0"
+}

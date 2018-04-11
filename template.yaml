@@ -1,0 +1,271 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Lambda and API Gateway",
+    "Parameters": {
+      "DeviceTableName": {
+        "Description": "The Dynamodb table name of your device info.",
+        "Type": "String",
+        "Default": "deviceInfo"
+      },
+      "LambdaCodeBucket": {
+        "Description": "Lambda Code Bucket Name",
+        "Type": "String",
+        "Default": "pubz"
+      },
+      "LambdaCodeS3Key": {
+        "Description": "Lambda S3 Key",
+        "Type": "String",
+        "Default": "cvm-iot.zip"
+      },
+      "LambdaFunctionName": {
+        "Description": "The Lambda name of your CVM",
+        "Type": "String",
+        "Default": "cvm-iot-demo"
+      }
+    },
+    "Conditions": {
+      "ApiGatewayDeployed": {"Fn::Not": [{"Fn::Equals": ["", {"Ref": "LambdaCodeBucket"}]}]}
+    },
+    "Resources": {
+      "DeviceInfoDynamoDBTable" : {
+        "Type" : "AWS::DynamoDB::Table",
+        "Properties" : {
+                "TableName": {"Ref": "DeviceTableName"},
+                "AttributeDefinitions": [
+                  {
+                    "AttributeName": "serialNumber",
+                    "AttributeType": "S"
+                  },
+                  {
+                    "AttributeName": "deviceToken",
+                    "AttributeType": "S"
+                  }
+                ],
+                "KeySchema": [
+                  {
+                    "AttributeName": "serialNumber",
+                    "KeyType": "HASH"
+                  },
+                  {
+                    "AttributeName": "deviceToken",
+                    "KeyType": "RANGE"
+                  }
+                ],
+                "ProvisionedThroughput": {
+                  "ReadCapacityUnits": "5",
+                  "WriteCapacityUnits": "5"
+                }
+        }
+      },
+      
+      "LambdaRole": {
+        "Type": "AWS::IAM::Role",
+        "Properties": {
+          "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [{
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": ["sts:AssumeRole"]
+            }]
+          },
+          "Path": "/",
+          "Policies": [{
+            "PolicyName": "logs",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Effect": "Allow",
+                "Action": [
+                   "logs:*"
+                ],
+                "Resource": "arn:aws:logs:*:*:*"
+              }]
+            }
+          }, {
+            "PolicyName": "dynamodb",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Sid": "1",
+                "Effect": "Allow",
+                "Action": ["dynamodb:Query", "dynamodb:UpdateItem"],
+                "Resource": [
+                  {"Fn::Join" : ["", ["arn:aws:dynamodb:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":table/",{"Ref": "DeviceTableName"}]]}
+                ]
+              }]
+            }
+          }, {
+            "PolicyName": "IoTCWlogsPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Sid": "1",
+                "Effect": "Allow",
+                "Action": ["iot:CreateThing", "iot:AttachPolicy", "iot:AttachThingPrincipal", "iot:CreatePolicy", "iot:CreateKeysAndCertificate"],
+                "Resource": [
+                  {"Fn::Join" : ["", ["arn:aws:iot:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":*"]]}
+                ]
+              }]
+            }
+          }]
+        }
+      },
+      "Lambda": {
+        "Type": "AWS::Lambda::Function",
+        "Properties": {
+          "Code": {
+            "S3Bucket": { "Ref": "LambdaCodeBucket" },
+            "S3Key": { "Ref": "LambdaCodeS3Key" }
+          },
+          "Environment": {
+            "Variables": {
+              "REGION": {"Ref": "AWS::Region"},
+              "DynamoDB_TABLE_NAME": {"Ref": "DeviceTableName"}
+            }
+         },
+          "Description": "CVM Lambda",
+          "Handler": "index.handler",
+          "MemorySize": 128,
+          "Role": {"Fn::GetAtt": ["LambdaRole", "Arn"]},
+          "Runtime": "nodejs6.10",
+          "Timeout": 15,
+          "FunctionName": { "Ref": "LambdaFunctionName" }
+        }
+      },
+      "CVMIoTApi": {
+          "Type": "AWS::ApiGateway::RestApi",
+          "Properties": {
+            "Name": "IoT CVM API",
+            "Description": "API used for CVM requests",
+            "FailOnWarnings": true
+          }
+        },
+        "LambdaPermission": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "Action": "lambda:invokeFunction",
+              "FunctionName": {"Fn::GetAtt": ["Lambda", "Arn"]},
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {"Fn::Join": ["", ["arn:aws:execute-api:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":", {"Ref": "CVMIoTApi"}, "/*"]]}
+            }
+          },
+          "ApiGatewayCloudWatchLogsRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [{
+                  "Effect": "Allow",
+                  "Principal": { "Service": ["apigateway.amazonaws.com"] },
+                  "Action": ["sts:AssumeRole"]
+                }]
+              },
+              "Policies": [{
+                "PolicyName": "ApiGatewayLogsPolicy",
+                "PolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [{
+                    "Effect": "Allow",
+                    "Action": [
+                      "logs:CreateLogGroup",
+                      "logs:CreateLogStream",
+                      "logs:DescribeLogGroups",
+                      "logs:DescribeLogStreams",
+                      "logs:PutLogEvents",
+                      "logs:GetLogEvents",
+                      "logs:FilterLogEvents"
+                    ],
+                    "Resource": "*"
+                  }]
+                }
+              }]
+            }
+          },
+          "ApiGatewayAccount": {
+            "Type": "AWS::ApiGateway::Account",
+            "Properties": {
+              "CloudWatchRoleArn": {"Fn::GetAtt": ["ApiGatewayCloudWatchLogsRole", "Arn"] }
+            }
+          },
+      
+          "CVMIoTApiStage": {
+            "DependsOn": ["ApiGatewayAccount"],
+            "Type": "AWS::ApiGateway::Stage",
+            "Properties": {
+              "DeploymentId": {"Ref": "ApiDeployment"},
+              "MethodSettings": [{
+                "DataTraceEnabled": true,
+                "HttpMethod": "*",
+                "LoggingLevel": "INFO",
+                "ResourcePath": "/*"
+              }],
+              "RestApiId": {"Ref": "CVMIoTApi"},
+              "StageName": "LATEST"
+            }
+          },
+  
+          "ApiDeployment": {
+            "Type": "AWS::ApiGateway::Deployment",
+            "DependsOn": ["CVMIoTApiRequest"],
+            "Properties": {
+              "RestApiId": {"Ref": "CVMIoTApi"},
+              "StageName": "DummyStage"
+            }
+          },
+          "CVMIoTResource": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "RestApiId": {"Ref": "CVMIoTApi"},
+              "ParentId": {"Fn::GetAtt": ["CVMIoTApi", "RootResourceId"]},
+              "PathPart": "getcert"
+            }
+          },
+      "CVMIoTApiRequest": {
+        "DependsOn": "LambdaPermission",
+        "Type": "AWS::ApiGateway::Method",
+        "Properties": {
+          "AuthorizationType": "NONE",
+          "HttpMethod": "GET",
+          "Integration": {
+            "Type": "AWS",
+            "IntegrationHttpMethod": "POST",
+            "Uri": {"Fn::Join": ["",
+              ["arn:aws:apigateway:", {"Ref": "AWS::Region"}, ":lambda:path/2015-03-31/functions/", {"Fn::GetAtt": ["Lambda", "Arn"]}, "/invocations"]
+            ]},
+            "IntegrationResponses": [{
+              "StatusCode": 200
+            }],
+            "RequestTemplates": {
+              "application/json": {"Fn::Join": ["", [
+                "{",
+                "  \"serialNumber\": \"$input.params().querystring.get('serialNumber')\"",
+                "  \"deviceToken\": \"$input.params().querystring.get('deviceToken')\"",
+                "}"
+              ]]}
+            }
+          },
+          "RequestParameters": {
+            "method.request.querystring.serialNumber": false,
+            "method.request.querystring.deviceToken": false
+          },
+          "ResourceId": {"Ref": "CVMIoTResource"},
+          "RestApiId": {"Ref": "CVMIoTApi"},
+          "MethodResponses": [{
+            "StatusCode": 200
+          }]
+        }
+      }
+    },
+    "Outputs": {
+      "LambdaArn": {
+        "Value": {"Fn::GetAtt": ["Lambda", "Arn"]}
+      },
+      "RequestUrlExample": {
+        "Description": "Request URL of the API gateway",
+        "Value": {"Fn::Join": ["", ["https://", {"Ref": "CVMIoTApi"}, ".execute-api.", {"Ref": "AWS::Region"}, ".amazonaws.com/LATEST/getcert?serialNumber=ascas&deviceToken=zxcz"]]}
+      }
+    }
+  }
