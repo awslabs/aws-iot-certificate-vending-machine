@@ -44,7 +44,7 @@ The entire implementation can be divided into three modules: IoT devices, CVM sy
 
 The basic workflow of the CVM system is as follows:
 
-<img src="images/workflow.png" alt="workflow" style="width: 600px;"/>
+<img src="images/workflow.png" alt="workflow" style="width: 500px;"/>
 
 The architecture of CVM system is as follows:
 
@@ -116,13 +116,28 @@ In addition to the IAM authority division, you need to create an association tab
 
 ## How do I deploy this?
 
-#### Deploy the CVM to your AWS account
+#### 1. Deploy the CVM to your AWS account
 
 The solution is available as a [AWS CloudFormation](https://aws.amazon.com/cloudformation) template, and included in this repository ([template.yml](template.yml)). Click the following button to deploy it to your AWS account in the `us-east-1` region:
  
-[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=\Iot-Certificate-Vending-Machine&templateURL=https://s3.amazonaws.com/pubz/cvm.yml)
+[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=Iot-Certificate-Vending-Machine&templateURL=https://s3.amazonaws.com/pubz/cvm.yml)
 
 You will need to provide some parameters to point [AWS Lambda](https://aws.amazon.com/lambda).
+
+When the cloudformation **CREATE_COMPLETE**, you can see the output of Cloudformation.
+
+[![cloudformation-stack-output](images/cloudformation-output.jpg)]
+
+#### 2. Add Sample Device Data to your Device Dynamodb 
+
+You must create item in your device dynamodb table, or you will see access deny.
+
+[![Add Sample Data about serialNumber & deviceToken ](images/AddSampleData.png)]
+
+### 3. Use output API Gateway Link to invoke your CVM
+
+Please use the link from the first step.
+https://XXXXX.execute-api.us-east-1.amazonaws.com/LATEST/getcert?serialNumber=ascas&deviceToken=zxcz
 
 ## Code Description
 
