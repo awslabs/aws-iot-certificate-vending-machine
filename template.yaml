@@ -27,37 +27,28 @@
       "ApiGatewayDeployed": {"Fn::Not": [{"Fn::Equals": ["", {"Ref": "LambdaCodeBucket"}]}]}
     },
     "Resources": {
-      "DeviceInfoDynamoDBTable" : {
-        "Type" : "AWS::DynamoDB::Table",
-        "Properties" : {
-                "TableName": {"Ref": "DeviceTableName"},
-                "AttributeDefinitions": [
-                  {
-                    "AttributeName": "serialNumber",
-                    "AttributeType": "S"
-                  },
-                  {
-                    "AttributeName": "deviceToken",
-                    "AttributeType": "S"
-                  }
-                ],
-                "KeySchema": [
-                  {
-                    "AttributeName": "serialNumber",
-                    "KeyType": "HASH"
-                  },
-                  {
-                    "AttributeName": "deviceToken",
-                    "KeyType": "RANGE"
-                  }
-                ],
-                "ProvisionedThroughput": {
-                  "ReadCapacityUnits": "5",
-                  "WriteCapacityUnits": "5"
-                }
+      "DeviceInfoDynamoDBTable": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": {"Ref": "DeviceTableName"},
+        "AttributeDefinitions": [
+          {
+            "AttributeName": "serialNumber",
+            "AttributeType": "S"
+          }
+        ],
+        "KeySchema": [
+          {
+            "AttributeName": "serialNumber",
+            "KeyType": "HASH"
+          }
+        ],
+        "ProvisionedThroughput": {
+          "ReadCapacityUnits": "5",
+          "WriteCapacityUnits": "5"
         }
-      },
-      
+      }
+    },
       "LambdaRole": {
         "Type": "AWS::IAM::Role",
         "Properties": {
@@ -98,16 +89,14 @@
               }]
             }
           }, {
-            "PolicyName": "IoTCWlogsPolicy",
+            "PolicyName": "IoTPolicy",
             "PolicyDocument": {
               "Version": "2012-10-17",
               "Statement": [{
                 "Sid": "1",
                 "Effect": "Allow",
                 "Action": ["iot:CreateThing", "iot:AttachPolicy", "iot:AttachThingPrincipal", "iot:CreatePolicy", "iot:CreateKeysAndCertificate"],
-                "Resource": [
-                  {"Fn::Join" : ["", ["arn:aws:iot:", {"Ref": "AWS::Region"}, ":", {"Ref": "AWS::AccountId"}, ":*"]]}
-                ]
+                "Resource": "*"
               }]
             }
           }]
@@ -241,8 +230,8 @@
             "RequestTemplates": {
               "application/json": {"Fn::Join": ["", [
                 "{",
-                "  \"serialNumber\": \"$input.params().querystring.get('serialNumber')\"",
-                "  \"deviceToken\": \"$input.params().querystring.get('deviceToken')\"",
+                "\"serialNumber\": \"$input.params().querystring.get('serialNumber')\",",
+                "\"deviceToken\": \"$input.params().querystring.get('deviceToken')\"",
                 "}"
               ]]}
             }
@@ -265,7 +254,7 @@
       },
       "RequestUrlExample": {
         "Description": "Request URL of the API gateway",
-        "Value": {"Fn::Join": ["", ["https://", {"Ref": "CVMIoTApi"}, ".execute-api.", {"Ref": "AWS::Region"}, ".amazonaws.com/LATEST/getcert?serialNumber=ascas&deviceToken=zxcz"]]}
+        "Value": {"Fn::Join": ["", ["https://", {"Ref": "CVMIoTApi"}, ".execute-api.", {"Ref": "AWS::Region"}, ".amazonaws.com/LATEST/getcert?serialNumber=value1&deviceToken=value2"]]}
       }
     }
   }
