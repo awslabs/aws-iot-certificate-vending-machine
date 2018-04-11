@@ -2,11 +2,14 @@
 
 You can use the CVM allows the device to apply for their own certificate and installation.
 
-#### Background Information
+> README Languages: [Chinese blog(中文)](https://aws.amazon.com/cn/blogs/china/certificate-vending-machine-iot-device-switch-in-aws-iot-platform-solution/)
+
+## Background Information
 
 In order to ensure the secured communication between IoT devices and AWS IoT Core, Devices may use X.509 certificates to connect to AWS IoT using TLS mutual authentication protocols. AWS Cloud security mechanisms protect data as it moves between AWS IoT and other devices or AWS services.
 
-![Architecture](images/Background.png)
+<img src="images/Background.png" alt="Background" style="width: 750px;"/>
+
 
 This mutual TLS authentication mode requires that a device certificate meets either of the following two conditions:
 
@@ -15,7 +18,7 @@ This mutual TLS authentication mode requires that a device certificate meets eit
 AWS understands that customers will have devices that currently do not have the ability to meet condition 1 or 2 immediately. Therefore, we have provided a reference application called, Certificate Vending Machine, which demonstrates how customers can provision devices with certificates created in AWS IoT.
 
 
-#### When to use Certificate Vending Machine?
+## When to use Certificate Vending Machine?
 
 Certificate Vending Machine (CVM) is an ideal fit for customers who do not have certificates pre-installed on the devices and are unable to obtain CA certificates to pre-create device certificates during their manufacturing process. On this occasion, you can use CVM system which allows the device to apply for their own certificate and then install the certificate into storage on the device. This document provides the design ideas and associated source code, which can help customers quickly develop a CVM system. Since the original IoT device does not contain a certificate for TLS mutual authentication, we need to pay attention to three points.
 
@@ -23,7 +26,7 @@ Certificate Vending Machine (CVM) is an ideal fit for customers who do not have 
 •	When an IoT device requests a certificate, it should have a unique identifier.  The identifier, such as serial number, client ID or product ID, will be used for policy binding and to ensure that the device is a valid device.
 •	All certificates submitted by the CVM system are AWS IoT Core signed certificates. If you need to use a custom CA certificate, refer to the Just-in-time Registration (JITR) certificate authentication method.
 
-#### Implementation Methodology
+## Implementation Methodology
 
 The entire implementation can be divided into three modules: IoT devices, CVM system and AWS IoT Core.
 
@@ -41,11 +44,11 @@ The entire implementation can be divided into three modules: IoT devices, CVM sy
 
 The basic workflow of the CVM system is as follows:
 
-![workflow](images/workflow.png)
+<img src="images/workflow.png" alt="workflow" style="width: 600px;"/>
 
 The architecture of CVM system is as follows:
 
-![Architecture](images/architecture.png)
+<img src="images/architecture.png" alt="Architecture" style="width: 800px;"/>
 
 Using the API Gateway and Lambda solution for scalability, the detailed workflow is shown as follows: 
 
@@ -58,7 +61,7 @@ Using the API Gateway and Lambda solution for scalability, the detailed workflow
 7)	Update all the associated information of the current device to DynamoDB association table
 8)	Lastly, the CVM system returns the certificate to the IoT devices
 
-#### Security
+## Security
 
 In order to ensure the security of the CVM system, the AWS Lambda function needs to be scoped to the minimum permissions needed in order to create certificates. The following example shows how to assign the correct IAM role privilege to the CVM system. 
 
@@ -71,35 +74,37 @@ The policy template for IAM role as follows, you should modify it more specifica
 
 ```
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Resource": "*",
-      "Action": [
-                "dynamodb:GetItem",
-                "dynamodb:Query",
-                "dynamodb:PutItem",
-                "dynamodb:UpdateItem",
-                "iot:CreateKeysAndCertificate",
-                "iot:CreateCertificateFromCsr",
-                "iot:CreatePolicy",
-                "iot:CreatePolicyVersion",
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "IoTCWlogsPolicy",
+            "Effect": "Allow",
+            "Action": [
+                "logs:*",
                 "iot:CreateThing",
-                "iot:CreateThingType",
                 "iot:AttachPolicy",
-                "iot:AttachThingPricipal",
-
-	]
-    }
-  ]
+                "iot:AttachThingPrincipal",
+                "iot:CreatePolicy",
+                "iot:CreateKeysAndCertificate"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "dynamodPolicy",
+            "Effect": "Allow",
+            "Action": [
+                "dynamodb:Query",
+                "dynamodb:UpdateItem"
+            ],
+            "Resource": "arn:aws:dynamodb:REGION:123456789012:table/TableName"
+        }
+    ]
 }
 ```
 
-
 Secondly, you need to allow lambda assume this role by adding trust relationship.
 
-![Architecture](images/policy.png)
+![policy](images/policy.png)
 
 In addition to the IAM authority division, you need to create an association table on DynamoDB for the binding relationship between the device, the certificate and policy. Specifically, you need to create the following database fields in DynamoDB: 
 
@@ -111,41 +116,48 @@ In addition to the IAM authority division, you need to create an association tab
 
 ## How do I deploy this?
 
-#### 1. Deploy the pipeline to your AWS account
+#### Deploy the CVM to your AWS account
 
 The solution is available as a [AWS CloudFormation](https://aws.amazon.com/cloudformation) template, and included in this repository ([template.yml](template.yml)). Click the following button to deploy it to your AWS account in the `us-east-1` region:
  
-[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=\<myapp>-pipeline&templateURL=https://s3.amazonaws.com/pubz/cvm.yml)  
+[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=\Iot-Certificate-Vending-Machine&templateURL=https://s3.amazonaws.com/pubz/cvm.yml)
 
 You will need to provide some parameters to point [AWS Lambda](https://aws.amazon.com/lambda).
 
-#### Code Description
+## Code Description
 
 The following CVM system reference source code uses the IoT interface provided by the AWS Node.js SDK to complete the certificate request and add the associated Thing Name and Policy.
 
+```JavaScript
+// Create cert
+  iot.createKeysAndCertificate(params, function(err, certdata) {
+    console.log("certdata:");
+    console.log(certdata);
+    
+    if (err) console.log(err, err.stack); // an error occurred
+    else{
+      
+       // Create IoT Policy for above cert
+       var params = {
+        policyDocument: config.PILICY_DOCUMENT, /* required */
+        policyName: serialNumber /* required */
+      };
+      iot.createPolicy(params, function(err, data) {
+        if (err) console.log(err, err.stack); // an error occurred
+        else{
+          console.log(data);
+          
+          // Attach policy for cert
+          var params = {
+            policyName: serialNumber, /* required */
+            target: certdata.certificateArn /* required */
+          };
+          iot.attachPolicy(params, function(err, data) {
 ```
-//Use createKeysAndCertificate to create certificate，This API will response certificate and certificate ID
-iot.createKeysAndCertificate (params = {}, callback) ⇒ AWS.Request
-
-# if CSR is in use, you can use following API call
-# iot.createCertificateFromCsr(params = {}, callback) ⇒ AWS.Request
-
- //Attach policy to current certificate
-iot.attachPrincipalPolicy(params = {}, callback) ⇒ AWS.Request
-
-//Attach IoT thing name to current certificat
-iot.attachThingPrincipal(params = {}, callback) ⇒ AWS.Request
-```
-
-CVM Server side source code on Lambda:
-https://github.com/cncoder/cvm/tree/serverless/server
-
-IoT device source code:
-https://github.com/cncoder/cvm/tree/serverless/device
-
 #### Reference Link:
 
-http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Iot.html
+[http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Iot.html](http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Iot.html
+)
 
 ## License
 
