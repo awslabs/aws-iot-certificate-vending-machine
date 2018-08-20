@@ -2,7 +2,7 @@
 
 You can use the CVM allows the device to apply for their own certificate and installation.
 
-> README Languages: [Chinese blog(中文)](https://aws.amazon.com/cn/blogs/china/certificate-vending-machine-iot-device-switch-in-aws-iot-platform-solution/)
+> README Languages: [Chinese blog(中文)](https://aws.amazon.com/cn/blogs/china/aws-iot-series-3/)
 
 ## Background Information
 
