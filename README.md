@@ -22,24 +22,24 @@ AWS understands that customers will have devices that currently do not have the 
 
 Certificate Vending Machine (CVM) is an ideal fit for customers who do not have certificates pre-installed on the devices and are unable to obtain CA certificates to pre-create device certificates during their manufacturing process. On this occasion, you can use CVM system which allows the device to apply for their own certificate and then install the certificate into storage on the device. This document provides the design ideas and associated source code, which can help customers quickly develop a CVM system. Since the original IoT device does not contain a certificate for TLS mutual authentication, we need to pay attention to three points.
 
-•	When IoT devices and the CVM system are communicating, a trusted DNS environment is needed in order to prevent the man-in-middle attack along with using other secured communication method, such as HTTPS.
-•	When an IoT device requests a certificate, it should have a unique identifier.  The identifier, such as serial number, client ID or product ID, will be used for policy binding and to ensure that the device is a valid device.
-•	All certificates submitted by the CVM system are AWS IoT Core signed certificates. If you need to use a custom CA certificate, refer to the Just-in-time Registration (JITR) certificate authentication method.
+- When IoT devices and the CVM system are communicating, a trusted DNS environment is needed in order to prevent the man-in-middle attack along with using other secured communication method, such as HTTPS.
+- When an IoT device requests a certificate, it should have a unique identifier.  The identifier, such as serial number, client ID or product ID, will be used for policy binding and to ensure that the device is a valid device.
+- All certificates submitted by the CVM system are AWS IoT Core signed certificates. If you need to use a custom CA certificate, refer to the Just-in-time Registration (JITR) certificate authentication method.
 
 ## Implementation Methodology
 
 The entire implementation can be divided into three modules: IoT devices, CVM system and AWS IoT Core.
 
-•	IoT device side
-•	Request a device certificate via HTTPS connection.
-•	Submit the device serial number and the registration token when requested. Registration token is a one-time token to avoid device serial number spoofing.
-•	CVM system
-•	Provides remote access to IoT devices for certificate application.
-•	Generates secured certificate for each IoT device that can be used to communicate to AWS IoT Core.
-•	Uses database, like DynamoDB, to store information such as the device ID, key registration information, and the applied device certificate.
-•	Associates IoT Thing Name, Certificate Policy, and Certificate ID by querying the association table in DynamoDB. In parallel, CVM modifies the certificate status attribute in DynamoDB to ensure that a device can only register for a single active certificate.
-•	IoT Core
-•	Response to API calls to generate the certificate and key pairs.
+- IoT device side
+- Request a device certificate via HTTPS connection.
+- Submit the device serial number and the registration token when requested. Registration token is a one-time token to avoid device serial number spoofing.
+- CVM system
+- Provides remote access to IoT devices for certificate application.
+- Generates secured certificate for each IoT device that can be used to communicate to AWS IoT Core.
+- Uses database, like DynamoDB, to store information such as the device ID, key registration information, and the applied device certificate.
+- Associates IoT Thing Name, Certificate Policy, and Certificate ID by querying the association table in DynamoDB. In parallel, CVM modifies the certificate status attribute in DynamoDB to ensure that a device can only register for a single active certificate.
+- IoT Core
+- Response to API calls to generate the certificate and key pairs.
 
 
 The basic workflow of the CVM system is as follows:
@@ -67,8 +67,8 @@ In order to ensure the security of the CVM system, the AWS Lambda function needs
 
 First of all, you need to understand the CVM system needs to have the IAM authority to complete the certificate application and the issuance process.
 
-•	Access AWS DynamoDB for querying, modifying, and updating device associations in DynamoDB table
-•	Access the IoT platform to apply for IoT device certificates
+- Access AWS DynamoDB for querying, modifying, and updating device associations in DynamoDB table
+- Access the IoT platform to apply for IoT device certificates
 
 The policy template for IAM role as follows, you should modify it more specifically for the minimum privilege.
 
@@ -108,11 +108,11 @@ Secondly, you need to allow lambda assume this role by adding trust relationship
 
 In addition to the IAM authority division, you need to create an association table on DynamoDB for the binding relationship between the device, the certificate and policy. Specifically, you need to create the following database fields in DynamoDB: 
 
-•	Product id: IoT device ID 
-•	Access Token: IoT Token 
-•	timestamp: certificate request timestamp
-•	applyState: request status (if the certificate is set to -1, it means that the device has already registered the certificate) 
-•	certID: certificate ID associated with the device
+- Product id: IoT device ID 
+- Access Token: IoT Token 
+- timestamp: certificate request timestamp
+- applyState: request status (if the certificate is set to -1, it means that the device has already registered the certificate) 
+- certID: certificate ID associated with the device
 
 ## How do I deploy this?
 
