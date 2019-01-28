@@ -39,9 +39,10 @@ let putCertinfo = ( iotcert, values,callback ) => {
     Key:{
         "serialNumber": values
     },
-    UpdateExpression: "set certinfo = :r",
+    UpdateExpression: "set certinfo = :r, isActivated = :t",
     ExpressionAttributeValues:{
-        ":r": iotcert
+        ":r": iotcert,
+        ":t": 1
     },
     ReturnValues:"UPDATED_NEW"
   }, (err, data) => {
