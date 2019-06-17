@@ -68,7 +68,8 @@ let applycert = ( serialNumber, callback ) => {
   iot.createPolicy(params, function(err, data) {
     if (err) console.log(err, err.stack); // an error occurred
     else{
-      console.log(data);
+      console.log("policydata:");
+      console.log(JSON.stringify(data));
 
       var params = {
         setAsActive: true || false

@@ -46,7 +46,7 @@ exports.handler = async (payload) => {
                     reject( Device_ERROR );
                 } else {
                     // After the verification is complete, you can apply for a certificate for the device.
-                    applyModel.applycert( serialNumber, ( err, certData ) => {                        
+                    applyModel.applycert( serialNumber, ( err, certData ) => {
                         // In order to be safe, you should write the certificate ID/Arn, indicating that the device has applied for a certificate.
                         applyModel.putCertinfo( certData.certificateArn, serialNumber, ( err, putSuccess ) => {                            
                             if(err) { 
@@ -58,11 +58,12 @@ exports.handler = async (payload) => {
                                     if ( err ) {
                                         console.log( err );
                                         reject( GET_ROOT_CA_ERROR );
+                                    } else {
+                                        var returnValues = certData;
+                                        returnValues.RootCA = rootca;
+                                        console.log( 'saved certificate', certData.certificateArn );                                    
+                                        resolve( returnValues );
                                     }
-                                    var returnValues = certData;
-                                    returnValues.RootCA = rootca;
-                                    console.log( 'saved certificate', certData.certificateArn );                                    
-                                    resolve( returnValues );
                                 })
 
                             }                            
