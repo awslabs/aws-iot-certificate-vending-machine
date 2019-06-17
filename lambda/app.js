@@ -59,26 +59,27 @@ let applycert = ( serialNumber, callback ) => {
 
   AWS.config.update({region: config.region});
   var iot = new AWS.Iot();
-  var params = {
-    setAsActive: true || false
-  };
-  // Create cert
-  iot.createKeysAndCertificate(params, function(err, certdata) {
-    console.log("certdata:");
-    console.log(certdata);
 
+  // Create IoT Policy first 
+  var params = {
+    policyDocument: config.POLICY_DOCUMENT, /* required */
+    policyName: serialNumber /* required */
+  };
+  iot.createPolicy(params, function(err, data) {
     if (err) console.log(err, err.stack); // an error occurred
     else{
+      console.log(data);
 
-       // Create IoT Policy for above cert
-       var params = {
-        policyDocument: config.PILICY_DOCUMENT, /* required */
-        policyName: serialNumber /* required */
+      var params = {
+        setAsActive: true || false
       };
-      iot.createPolicy(params, function(err, data) {
+      // Create cert for policy
+      iot.createKeysAndCertificate(params, function(err, certdata) {
+        console.log("certdata:");
+        console.log(JSON.stringify(certdata));
+
         if (err) console.log(err, err.stack); // an error occurred
         else{
-          console.log(data);
 
           // Attach policy for cert
           var params = {

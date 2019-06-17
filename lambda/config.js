@@ -9,7 +9,7 @@ var config = {
 
 
 // In actual production, the policy document should be generated dynamically.
-config.PILICY_DOCUMENT = `{
+config.POLICY_DOCUMENT = `{
   "Version": "2012-10-17",
   "Statement": [
     {
@@ -23,5 +23,4 @@ config.PILICY_DOCUMENT = `{
 
 // VeriSign Class 3 Public Primary G5 root CA certificateVeriSign Class 3 Public Primary G5 root CA certificate
 config.RootCA_URL = 'https://www.symantec.com/content/en/us/enterprise/verisign/roots/VeriSign-Class%203-Public-Primary-Certification-Authority-G5.pem';
-
 module.exports = config;
