@@ -22,10 +22,10 @@ let findDataBySerialNumber = ( values,callback ) => {
         }
       }, (err, data) => {
         if (err) {
-          console.log(err);
+          console.log('error', err);
           callback( null, err );
         } else {
-          //console.log(data.Count);
+          console.log('success', data.Count);
           callback( null, data );
         }
       });

@@ -10,8 +10,9 @@ const applyModel = require("app");
     You should submit your device credentials to Lambda function through API Gateway for authenticating in DynamoDB.
     eg: {"serialNumber":"YOUR_DEVICE_SERIAL_NUMBER","deviceToken":"TOKEN"}
 */
-exports.handler = (event, context, callback) => {
-    
+exports.handler = (payload, context, callback) => {
+    event = JSON.parse(payload['body'])
+
     console.log("EVENT: " + JSON.stringify(event));
     
     const DYNAMODB_ERROR = 'Service error: 500!';
@@ -38,32 +39,34 @@ exports.handler = (event, context, callback) => {
         else if ( data.Count == 1) {
             
             //  then verify Token
-            if(data.Items[0].deviceToken!=deviceToken) callback(null, Device_ERROR );
-            else{
+            if(data.Items[0].deviceToken!=deviceToken) {
+                console.log( 'device token same' )
+                callback(null, Device_ERROR );
+            } else {
                 // After the verification is complete, you can apply for a certificate for the device.
-            applyModel.applycert( serialNumber, ( err, certData ) => {
-                
-                // In order to be safe, you should write the certificate ID/Arn, indicating that the device has applied for a certificate.
-                applyModel.putCertinfo( certData.certificateArn, serialNumber, ( err,putSuccess ) => {
+                applyModel.applycert( serialNumber, ( err, certData ) => {
                     
-                    if(err) callback( null, INTERLNAL_ERROR );
-                    
-                    // Don't forget to return CA certificate
-                    applyModel.getIoTRootCA( ( err,rootca ) => {
+                    // In order to be safe, you should write the certificate ID/Arn, indicating that the device has applied for a certificate.
+                    applyModel.putCertinfo( certData.certificateArn, serialNumber, ( err,putSuccess ) => {
                         
-                        if ( err ) {
-                            console.log( err );
-                            callback( null, GET_ROOT_CA_ERROR );
-                        }
-                        var returnValues = certData;
-                        returnValues.RootCA = rootca;
-                        console.log( certData.certificateArn );
+                        if(err) callback( null, INTERLNAL_ERROR );
+                        
                         // Don't forget to return CA certificate
-                        callback(null, returnValues );
-                    })
-                    
+                        applyModel.getIoTRootCA( ( err,rootca ) => {
+                            
+                            if ( err ) {
+                                console.log( err );
+                                callback( null, GET_ROOT_CA_ERROR );
+                            }
+                            var returnValues = certData;
+                            returnValues.RootCA = rootca;
+                            console.log( certData.certificateArn );
+                            // Don't forget to return CA certificate
+                            callback(null, returnValues );
+                        })
+                        
+                    });
                 });
-            });
             }
             
         }
