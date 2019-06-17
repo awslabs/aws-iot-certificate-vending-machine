@@ -11,7 +11,7 @@ const applyModel = require("app");
     eg: {"serialNumber":"YOUR_DEVICE_SERIAL_NUMBER","deviceToken":"TOKEN"}
 */
 exports.handler = (payload, context, callback) => {
-    event = JSON.parse(payload['body'])
+    var event = payload['queryStringParameters'] || JSON.parse(payload['body'])
 
     console.log("EVENT: " + JSON.stringify(event));
     

@@ -12,7 +12,7 @@ Outputs:
     Value: !GetAtt LambdaRole.Arn
   CVMIoTApi:
     Description: "API Gateway endpoint URL for Prod stage for API Gateway"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/getcert?serialNumber=ascas&deviceToken=zxcz"
     Export:
       Name: !Join [ ":", [ !Ref "AWS::StackName", CVMIoTApi ] ]        
 Resources:
@@ -34,8 +34,8 @@ Resources:
         CVMIoTApi:
             Type: Api
             Properties:
-                Path: /
-                Method: POST
+                Path: /getcert
+                Method: GET
   DeviceInfoDynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
