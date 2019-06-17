@@ -22,5 +22,5 @@ config.POLICY_DOCUMENT = `{
 `;
 
 // VeriSign Class 3 Public Primary G5 root CA certificateVeriSign Class 3 Public Primary G5 root CA certificate
-config.RootCA_URL = 'https://www.symantec.com/content/en/us/enterprise/verisign/roots/VeriSign-Class%203-Public-Primary-Certification-Authority-G5.pem';
+config.RootCA_URL = 'https://www.amazontrust.com/repository/AmazonRootCA1.pem';
 module.exports = config;
