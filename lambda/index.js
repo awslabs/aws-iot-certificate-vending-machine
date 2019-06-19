@@ -3,7 +3,6 @@ Copyright 2017 Amazon.com, Inc. or its affiliates. All Rights Reserved.
 This node.js Lambda function code creates certificate, attaches an IoT policy, IoT thing . 
 It also activates the certificate. 
 **/
-const config = require('./config');
 const applyModel = require('./app');
 
 /* 

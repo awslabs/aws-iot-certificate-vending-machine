@@ -1,6 +1,6 @@
 const https = require('https');
-const config = require('./config');
 const AWS = require('aws-sdk');
+const config = require('./config');
 
 // Set the region
 AWS.config.update({region: config.REGION});
@@ -34,7 +34,6 @@ let putCertinfo = ( serialNumber, certificateArn ) => {
     },
     ReturnValues:"UPDATED_NEW"
   }
-  console.log('update table', updateParams)
   return dynamoDb.update(updateParams).promise();
 }
 
