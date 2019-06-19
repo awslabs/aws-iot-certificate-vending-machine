@@ -4,7 +4,7 @@ This node.js Lambda function code creates certificate, attaches an IoT policy, I
 It also activates the certificate. 
 **/
 const config = require('./config');
-const applyModel = require("app");
+const applyModel = require('./app');
 
 /* 
     You should submit your device credentials to Lambda function through API Gateway for authenticating in DynamoDB.
@@ -15,78 +15,62 @@ exports.handler = async (payload) => {
 
     console.log("EVENT: " + JSON.stringify(event));
     
-    const DYNAMODB_ERROR = 'Service error: 500!';
-    const Device_ERROR = 'Access Deny!';
-    const INTERNAL_ERROR = 'Identical serial number error!';
-    const GET_ROOT_CA_ERROR = 'Can not get Get VeriSign Class 3 Public Primary G5 root CA certificate! ';
+    const DYNAMODB_ERROR = 'Service error';
+    const DEVICE_ERROR = 'Access Denied';
+    const CERT_ERROR = 'Error issuing certificate!';
+    const GET_ROOT_CA_ERROR = 'Can not get Amazon root CA certificate! ';
     
     // Get device credentials
     var serialNumber = event.serialNumber;
     var deviceToken = event.deviceToken;
     
     // Verify device legality
-    var verifyDevice = new Promise((resolve, reject) => {
-        applyModel.findDataBySerialNumber( serialNumber, ( err,data ) => {        
-            if( err ) {
-                console.log( err );
-                reject( DYNAMODB_ERROR );
+    var verifyDevice = applyModel.findDataBySerialNumber(serialNumber).then(data => {        
+        if ( data.Count == 1) {            
+            if(data.Items[0].deviceToken != deviceToken) {
+                console.log("Device token different")
+                throw DEVICE_ERROR;
             }
-            // No device exists!
-            else if ( data.Count == 0) {
-                reject( Device_ERROR );
-            }
-            // You should replace equipment certificate according to demand in production.
-            else if ( data.Count == 1) {            
-                //  then verify Token
-                if(data.Items[0].deviceToken!=deviceToken) {
-                    console.log( 'device token different' )
-                    reject( Device_ERROR );
-                } else if (data.Items[0].certinfo) {
-                    console.log( 'device token has cert info' )
-                    reject( Device_ERROR );
-                } else {
-                    // After the verification is complete, you can apply for a certificate for the device.
-                    applyModel.applycert( serialNumber, ( err, certData ) => {
-                        // In order to be safe, you should write the certificate ID/Arn, indicating that the device has applied for a certificate.
-                        applyModel.putCertinfo( certData.certificateArn, serialNumber, ( err, putSuccess ) => {                            
-                            if(err) { 
-                                console.log( err );
-                                reject( INTERNAL_ERROR );
-                            } else {
-                                // Don't forget to return CA certificate
-                                applyModel.getIoTRootCA( ( err,rootca ) => {                                    
-                                    if ( err ) {
-                                        console.log( err );
-                                        reject( GET_ROOT_CA_ERROR );
-                                    } else {
-                                        var returnValues = certData;
-                                        returnValues.RootCA = rootca;
-                                        console.log( 'saved certificate', certData.certificateArn );                                    
-                                        resolve( returnValues );
-                                    }
-                                })
-
-                            }                            
-                        });
-                    });
-                }
-            }
-            // Else count > 1 
-            else {
-                console.log(data);
-                reject( INTERNAL_ERROR );
-            }
-        });
+            // If we have an existing cert then re-issue is issue cert
+            var certArn = data.Items[0].certinfo;
+            var apply = (certArn) ?
+                applyModel.reissueCert(serialNumber, certArn) :
+                applyModel.issueCert(serialNumber);
+            return apply.then(certData => {
+                return applyModel.putCertinfo(serialNumber, certData.certificateArn).then(updateData => {
+                    return applyModel.getIoTRootCA().then(rootca => {       
+                        console.log("Save certificate", certData.certificateArn );                                    
+                        certData.RootCA = rootca;
+                        return certData;
+                    }).catch(err => {
+                        console.log("Error getting root CA", err)
+                        throw GET_ROOT_CA_ERROR;
+                    }); 
+                }).catch(err => {
+                    console.log("Error updating DynamoDB", err);
+                    throw DYNAMODB_ERROR;
+                });
+            }).catch(err => {
+                console.log("Error issueing cert", err)
+                throw CERT_ERROR;
+            });
+        } else {
+            console.log("Device not found")
+            throw DEVICE_ERROR;
+        }
+    }).catch(err => {
+        console.log("Error querying DynamoDB", err);
+        throw DYNAMODB_ERROR;
     })
-
-    // Return the status code and body
-    return verifyDevice.then( returnValues => {
+    
+    // Return the json or plain text response
+    return verifyDevice.then(certData => {
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(returnValues, null, "\t")
+            body: JSON.stringify(certData, null, "\t")
         };        
     }).catch( err => {
         return {

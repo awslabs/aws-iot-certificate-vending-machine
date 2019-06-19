@@ -29,7 +29,7 @@ Resources:
       Environment:
         Variables:
           REGION: !Ref AWS::Region
-          DynamoDB_TABLE_NAME: !Ref DeviceInfoDynamoDBTable
+          DYNAMODB_TABLE_NAME: !Ref DeviceInfoDynamoDBTable
       Events:
         CVMIoTApi:
             Type: Api
