@@ -98,7 +98,11 @@ Resources:
             Action:
             - iot:CreateThing
             - iot:AttachPolicy
+            - iot:DetachPolicy 
             - iot:AttachThingPrincipal
+            - iot:DetachThingPrincipal
             - iot:CreatePolicy
             - iot:CreateKeysAndCertificate
+            - iot:UpdateCertificate
+            - iot:DeleteCertificate
             Resource: "*"
