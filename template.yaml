@@ -119,7 +119,7 @@
           "Handler": "index.handler",
           "MemorySize": 128,
           "Role": {"Fn::GetAtt": ["LambdaRole", "Arn"]},
-          "Runtime": "nodejs6.10",
+          "Runtime": "nodejs8.10",
           "Timeout": 15,
           "FunctionName": { "Ref": "LambdaFunctionName" }
         }
@@ -179,7 +179,7 @@
               "CloudWatchRoleArn": {"Fn::GetAtt": ["ApiGatewayCloudWatchLogsRole", "Arn"] }
             }
           },
-      
+
           "CVMIoTApiStage": {
             "DependsOn": ["ApiGatewayAccount"],
             "Type": "AWS::ApiGateway::Stage",
@@ -195,7 +195,7 @@
               "StageName": "LATEST"
             }
           },
-  
+
           "ApiDeployment": {
             "Type": "AWS::ApiGateway::Deployment",
             "DependsOn": ["CVMIoTApiRequest"],
