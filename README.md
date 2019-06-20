@@ -118,9 +118,9 @@ In addition to the IAM authority division, you need to create an association tab
 
 #### 1. Deploy the CVM to your AWS account
 
-The solution is available as a [AWS CloudFormation](https://aws.amazon.com/cloudformation) template, and included in this repository ([template.yml](template.yml)). Click the following button to deploy it to your AWS account in the `us-east-1` region:
+The solution is available as a [AWS CloudFormation](https://aws.amazon.com/cloudformation) SAM template, and included in this repository ([template.yml](template.yml)). Click the following button to deploy it to your AWS account in the `us-east-1` region:
  
-[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=Iot-Certificate-Vending-Machine&templateURL=https://s3.amazonaws.com/pubz/cvm.yml)
+[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=Iot-Certificate-Vending-Machine&templateURL=https://brightsparc-aws-iot-certificate-vending-machine.s3.amazonaws.com/template-output.yaml)
 
 You will need to provide some parameters to point [AWS Lambda](https://aws.amazon.com/lambda).
 
