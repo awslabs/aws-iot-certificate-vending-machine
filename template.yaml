@@ -10,7 +10,7 @@
       "LambdaCodeBucket": {
         "Description": "Lambda Code Bucket Name",
         "Type": "String",
-        "Default": "pubz"
+        "Default": "certificate-vending-machine-v2"
       },
       "LambdaCodeS3Key": {
         "Description": "Lambda S3 Key",
