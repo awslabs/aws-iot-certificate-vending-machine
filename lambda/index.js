@@ -10,66 +10,85 @@ const applyModel = require('./app');
     eg: {"serialNumber":"YOUR_DEVICE_SERIAL_NUMBER","deviceToken":"TOKEN"}
 */
 exports.handler = async (payload) => {
-    var event = payload['queryStringParameters'] || JSON.parse(payload['body'])
+    // Compbine the event from query string and payload body
+    var event = Object.assign({}, payload['queryStringParameters'], JSON.parse(payload['body']))
+    var path = payload['path']
+    var httpMethod = payload['httpMethod']
 
-    console.log("EVENT: " + JSON.stringify(event));
+    console.log("REQUEST: ", httpMethod, path, JSON.stringify(event));
     
     const DYNAMODB_ERROR = 'Service error';
     const DEVICE_ERROR = 'Access Denied';
     const CERT_ERROR = 'Error issuing certificate!';
     const GET_ROOT_CA_ERROR = 'Can not get Amazon root CA certificate! ';
+    const BAD_REQUEST = 'Bad Request';
     
     // Get device credentials
     var serialNumber = event.serialNumber;
     var deviceToken = event.deviceToken;
     
     // Verify device legality
-    var verifyDevice = applyModel.findDataBySerialNumber(serialNumber).then(data => {        
+    var response = applyModel.findDataBySerialNumber(serialNumber).catch(err => {
+        console.log("Error querying DynamoDB", err);
+        throw DYNAMODB_ERROR;
+    }).then(data => {        
         if ( data.Count == 1) {            
             if(data.Items[0].deviceToken != deviceToken) {
                 console.log("Device token different")
                 throw DEVICE_ERROR;
             }
-            // If we have an existing cert then re-issue is issue cert
-            var certArn = data.Items[0].certinfo;
-            var apply = (certArn) ?
-                applyModel.reissueCert(serialNumber, certArn) :
-                applyModel.issueCert(serialNumber);
-            return apply.then(certData => {
-                return applyModel.putCertinfo(serialNumber, certData.certificateArn).then(updateData => {
-                    return applyModel.getIoTRootCA().then(rootca => {       
-                        console.log("Save certificate", certData.certificateArn );                                    
-                        certData.RootCA = rootca;
-                        return certData;
+            if (path == '/getcert') {
+                // If we have an existing cert then re-issue is issue cert
+                var certArn = data.Items[0].certinfo;
+                var apply = (certArn) ?
+                    applyModel.reissueCert(serialNumber, certArn) :
+                    applyModel.issueCert(serialNumber);
+                return apply.then(certData => {
+                    return applyModel.putCertinfo(serialNumber, certData.certificateArn).then(updateData => {
+                        return applyModel.getIoTRootCA().then(rootca => {       
+                            console.log("Save certificate", certData.certificateArn );                                    
+                            certData.RootCA = rootca;
+                            return certData;
+                        }).catch(err => {
+                            console.log("Error getting root CA", err)
+                            throw GET_ROOT_CA_ERROR;
+                        }); 
                     }).catch(err => {
-                        console.log("Error getting root CA", err)
-                        throw GET_ROOT_CA_ERROR;
-                    }); 
+                        console.log("Error updating DynamoDB", err);
+                        throw DYNAMODB_ERROR;
+                    });
                 }).catch(err => {
-                    console.log("Error updating DynamoDB", err);
-                    throw DYNAMODB_ERROR;
+                    console.log("Error issueing cert", err)
+                    throw CERT_ERROR;
                 });
-            }).catch(err => {
-                console.log("Error issueing cert", err)
-                throw CERT_ERROR;
-            });
+            } else if (path == '/shadow') {
+                // Get the reported state or update desired state for a device shadow
+                if (httpMethod == 'GET') {
+                    return applyModel.getShadow(serialNumber)
+                } else if (httpMethod == 'PUT') {
+                    return applyModel.updateShadow(serialNumber, event)
+                } else {
+                    console.log("Method not supported")
+                    throw BAD_REQUEST;
+                }
+            } else {
+                console.log("Path not supported")
+                throw BAD_REQUEST;
+            }
         } else {
             console.log("Device not found")
             throw DEVICE_ERROR;
         }
-    }).catch(err => {
-        console.log("Error querying DynamoDB", err);
-        throw DYNAMODB_ERROR;
     })
     
     // Return the json or plain text response
-    return verifyDevice.then(certData => {
+    return response.then(data => {
         return {
             statusCode: 200,
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(certData, null, "\t")
+            body: JSON.stringify(data, null, "\t")
         };        
     }).catch( err => {
         return {

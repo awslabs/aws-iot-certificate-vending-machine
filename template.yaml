@@ -10,11 +10,9 @@ Outputs:
   LambdaArn:
     Description: "Lambda Arn"
     Value: !GetAtt LambdaRole.Arn
-  CVMIoTApi:
-    Description: "API Gateway endpoint URL for Prod stage for API Gateway"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/getcert?serialNumber=ascas&deviceToken=zxcz"
-    Export:
-      Name: !Join [ ":", [ !Ref "AWS::StackName", CVMIoTApi ] ]        
+  Api:
+    Description: "API Gateway endpoint URL for Prod stage"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
 Resources:
   CVMIoTResource:
     Type: 'AWS::Serverless::Function'
@@ -36,6 +34,11 @@ Resources:
             Properties:
                 Path: /getcert
                 Method: GET
+        ShadowIoTApi:
+            Type: Api
+            Properties:
+                Path: /shadow
+                Method: ANY
   DeviceInfoDynamoDBTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -105,4 +108,6 @@ Resources:
             - iot:CreateKeysAndCertificate
             - iot:UpdateCertificate
             - iot:DeleteCertificate
+            - iot:GetThingShadow
+            - iot:UpdateThingShadow
             Resource: "*"
