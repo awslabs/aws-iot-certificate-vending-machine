@@ -8,6 +8,10 @@ AWS.config.update({region: config.REGION});
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
 // Create the Iot Client
 const iot = new AWS.Iot();
+const iotdata = new AWS.IotData({
+  egion: config.REGION,
+  endpoint: config.IOT_DATA_ENDPOINT
+});
 
 // Search User identity information from Dynamodb
 let findDataBySerialNumber = ( serialNumber ) => {
@@ -124,6 +128,36 @@ let reissueCert = ( serialNumber, certificateArn ) => {
   });
 }
 
+let getShadow = ( serialNumber ) => {
+  // Get reported state for thing
+  var params = {
+    thingName: serialNumber
+  }
+  return iotdata.getThingShadow(params).promise().then(data => {
+    console.log('get payload', data.payload)
+    var payload = JSON.parse(data.payload)
+    var reported = payload['state']['reported']
+    // Filter out keys that are not allowed 
+    Object.keys(reported).forEach(key => !config.IOT_SHADOW_ALLOWED_KEYS[key] && delete reported[key])
+    return reported
+  })
+}
+
+let updateShadow = ( serialNumber, desired ) => {
+  // Remove keys that are now allowed
+  Object.keys(desired).forEach(key => !config.IOT_SHADOW_ALLOWED_KEYS[key] && delete desired[key])
+  // Set desired state for thing (only reported state is updated by device)
+  var params = {
+    thingName: serialNumber,
+    payload: Buffer.from(JSON.stringify({ state: { desired: desired } }))
+  };
+  return iotdata.updateThingShadow(params).promise().then(data => {
+    console.log('update payload', data.payload)
+    var payload = JSON.parse(data.payload)
+    return payload['state']['desired']
+  })
+}
+
 // Get VeriSign Class 3 Public Primary G5 root CA certificate
 let getIoTRootCA = () => {
   return new Promise((resolve, reject) => {
@@ -147,5 +181,7 @@ module.exports = {
     putCertinfo,
     issueCert,
     reissueCert,
-    getIoTRootCA,
+    getShadow,
+    updateShadow,
+    getIoTRootCA
 }
