@@ -138,14 +138,16 @@ let getShadow = ( serialNumber ) => {
     var payload = JSON.parse(data.payload)
     var reported = payload['state']['reported']
     // Filter out keys that are not allowed 
-    Object.keys(reported).forEach(key => !config.IOT_SHADOW_ALLOWED_KEYS[key] && delete reported[key])
+    const regex = new RegExp(config.IOT_SHADOW_ALLOWED_KEYS);
+    Object.keys(reported).forEach(key => !key.match(regex) && delete reported[key])
     return reported
   })
 }
 
 let updateShadow = ( serialNumber, desired ) => {
   // Remove keys that are now allowed
-  Object.keys(desired).forEach(key => !config.IOT_SHADOW_ALLOWED_KEYS[key] && delete desired[key])
+  const regex = new RegExp(config.IOT_SHADOW_ALLOWED_KEYS);
+  Object.keys(desired).forEach(key => !key.match(regex) && delete desired[key])
   // Set desired state for thing (only reported state is updated by device)
   var params = {
     thingName: serialNumber,

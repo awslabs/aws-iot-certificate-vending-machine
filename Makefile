@@ -12,6 +12,6 @@ package-template:
 deploy-template:
 	aws cloudformation deploy \
 	--template-file template-output.yaml \
-	--stack-name followme-deviceinfo \
+	--stack-name iot-cvm-stack \
 	--capabilities CAPABILITY_NAMED_IAM \
 	--region $(deploy_region)

@@ -15,8 +15,8 @@ const config = {
       }
     ]
   }`,
-  IOT_SHADOW_ALLOWED_KEYS: { "room": true },
-  IOT_DATA_ENDPOINT: 'a3vzqpudtrlbrd-ats.iot.us-west-2.amazonaws.com',
+  IOT_SHADOW_ALLOWED_KEYS: '.*',
+  IOT_DATA_ENDPOINT: environment.IOT_DATA_ENDPOINT,
   ROOT_CA_URL: 'https://www.amazontrust.com/repository/AmazonRootCA1.pem'
 };
 

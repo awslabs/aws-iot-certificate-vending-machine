@@ -6,6 +6,10 @@ Parameters:
     Description: The Dynamodb table name of your device info.
     Type: String
     Default: deviceInfo
+  IotDataEndpoint:
+    Description: The IoT data endpoint for updating shadow.
+    Type: String
+    Default: XXX-ats.iot.us-west-2.amazonaws.com
 Outputs:
   LambdaArn:
     Description: "Lambda Arn"
@@ -28,6 +32,7 @@ Resources:
         Variables:
           REGION: !Ref AWS::Region
           DYNAMODB_TABLE_NAME: !Ref DeviceInfoDynamoDBTable
+          IOT_DATA_ENDPOINT: !Ref IotDataEndpoint
       Events:
         CVMIoTApi:
             Type: Api
