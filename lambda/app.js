@@ -128,6 +128,14 @@ let reissueCert = ( serialNumber, certificateArn ) => {
   });
 }
 
+let filterKeys = (obj) => {
+    // Filter out keys that are not allowed 
+    const blacklist = new RegExp(config.IOT_SHADOW_BLACKLIST_KEYS);
+    const whitelist = new RegExp(config.IOT_SHADOW_WHITELIST_KEYS || '.*');
+    Object.keys(obj).forEach(key => (!key.match(whitelist) || key.match(blacklist)) && delete obj[key])
+    return obj;
+}
+
 let getShadow = ( serialNumber ) => {
   // Get reported state for thing
   var params = {
@@ -136,18 +144,19 @@ let getShadow = ( serialNumber ) => {
   return iotdata.getThingShadow(params).promise().then(data => {
     console.log('get payload', data.payload)
     var payload = JSON.parse(data.payload)
+    // If no reported state return empty obj
+    if (!('reported' in payload['state'])) {
+      return {}
+    }
     var reported = payload['state']['reported']
-    // Filter out keys that are not allowed 
-    const regex = new RegExp(config.IOT_SHADOW_ALLOWED_KEYS);
-    Object.keys(reported).forEach(key => !key.match(regex) && delete reported[key])
-    return reported
+    // Remove keys that are now allowed
+    return filterKeys(reported);
   })
 }
 
 let updateShadow = ( serialNumber, desired ) => {
   // Remove keys that are now allowed
-  const regex = new RegExp(config.IOT_SHADOW_ALLOWED_KEYS);
-  Object.keys(desired).forEach(key => !key.match(regex) && delete desired[key])
+  var desired = filterKeys(desired);
   // Set desired state for thing (only reported state is updated by device)
   var params = {
     thingName: serialNumber,
@@ -156,6 +165,10 @@ let updateShadow = ( serialNumber, desired ) => {
   return iotdata.updateThingShadow(params).promise().then(data => {
     console.log('update payload', data.payload)
     var payload = JSON.parse(data.payload)
+    // If no reported state return empty obj
+    if (!('desired' in payload['state'])) {
+      return {}
+    }
     return payload['state']['desired']
   })
 }

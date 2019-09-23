@@ -15,7 +15,8 @@ const config = {
       }
     ]
   }`,
-  IOT_SHADOW_ALLOWED_KEYS: '.*',
+  IOT_SHADOW_WHITELIST_KEYS: null,
+  IOT_SHADOW_BLACKLIST_KEYS: 'deviceToken|serialNumber',
   IOT_DATA_ENDPOINT: environment.IOT_DATA_ENDPOINT,
   ROOT_CA_URL: 'https://www.amazontrust.com/repository/AmazonRootCA1.pem'
 };

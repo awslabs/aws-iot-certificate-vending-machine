@@ -9,7 +9,6 @@ Parameters:
   IotDataEndpoint:
     Description: The IoT data endpoint for updating shadow.
     Type: String
-    Default: XXX-ats.iot.us-west-2.amazonaws.com
 Outputs:
   LambdaArn:
     Description: "Lambda Arn"
@@ -21,7 +20,7 @@ Resources:
   CVMIoTResource:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Runtime: nodejs8.10
+      Runtime: nodejs10.x
       MemorySize: 1024
       Timeout: 15
       CodeUri: ./lambda
