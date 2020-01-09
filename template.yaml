@@ -119,7 +119,7 @@
           "Handler": "index.handler",
           "MemorySize": 128,
           "Role": {"Fn::GetAtt": ["LambdaRole", "Arn"]},
-          "Runtime": "nodejs6.10",
+          "Runtime": "nodejs10.x",
           "Timeout": 15,
           "FunctionName": { "Ref": "LambdaFunctionName" }
         }
