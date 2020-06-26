@@ -120,7 +120,7 @@ In addition to the IAM authority division, you need to create an association tab
 
 The solution is available as a [AWS CloudFormation](https://aws.amazon.com/cloudformation) SAM template, and included in this repository ([template.yml](template.yml)). Click the following button to deploy it to your AWS account in the `us-east-1` region:
  
-[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=Iot-Certificate-Vending-Machine&templateURL=https://aiml-iot-cvm-deploy-ap-southeast-2.s3.amazonaws.com/template-output.yaml)
+[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=Iot-Certificate-Vending-Machine&templateURL=https://aiml-iot-cvm-ap-southeast-2.s3-ap-southeast-2.amazonaws.com/template-output.yaml)
 
 You will need to provide some parameters to point [AWS Lambda](https://aws.amazon.com/lambda).
 
