@@ -118,9 +118,9 @@ In addition to the IAM authority division, you need to create an association tab
 
 #### 1. Deploy the CVM to your AWS account
 
-The solution is available as a [AWS CloudFormation](https://aws.amazon.com/cloudformation) template, and included in this repository ([template.yml](template.yml)). Click the following button to deploy it to your AWS account in the `us-east-1` region:
+The solution is available as a [AWS CloudFormation](https://aws.amazon.com/cloudformation) SAM template, and included in this repository ([template.yml](template.yml)). Click the following button to deploy it to your AWS account in the `us-east-1` region:
  
-[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=Iot-Certificate-Vending-Machine&templateURL=https://s3.amazonaws.com/pubz/cvm.yml)
+[![cloudformation-launch-stack](images/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/new?stackName=Iot-Certificate-Vending-Machine&templateURL=https://aiml-iot-cvm-ap-southeast-2.s3-ap-southeast-2.amazonaws.com/template-output.yaml)
 
 You will need to provide some parameters to point [AWS Lambda](https://aws.amazon.com/lambda).
 
@@ -137,7 +137,7 @@ You must create item in your device dynamodb table, or you will see access deny.
 ### 3. Use output API Gateway Link to invoke your CVM
 
 Please use the link from the first step.
-https://XXXXX.execute-api.us-east-1.amazonaws.com/LATEST/getcert?serialNumber=ascas&deviceToken=zxcz
+https://XXXXX.execute-api.us-east-1.amazonaws.com/PROD/getcert?serialNumber=ascas&deviceToken=zxcz
 
 ## Code Description
 

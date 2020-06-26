@@ -1,157 +1,202 @@
-var https = require('https');
-const config = require('./config');
-// Load the SDK for JavaScript
+const https = require('https');
 const AWS = require('aws-sdk');
-// Set the region
-console.log(config.DynamoDB_TABLE_NAME);
-AWS.config.update({region: `${config.DYNAMODB_TABLE_REGION}`});
-// Set the Dynamodb Table
-const Device_TABLE_NAME = config.DynamoDB_TABLE_NAME;
+const config = require('./config');
 
+// Set the region
+AWS.config.update({region: config.REGION});
 // The DocumentClient class allows us to interact with DynamoDB using normal objects.
 const dynamoDb = new AWS.DynamoDB.DocumentClient();
+// Create the Iot Client
+const iot = new AWS.Iot();
+const iotdata = new AWS.IotData({
+  egion: config.REGION,
+  endpoint: config.IOT_DATA_ENDPOINT
+});
 
 // Search User identity information from Dynamodb
-let findDataBySerialNumber = ( values,callback ) => {
-
-      dynamoDb.query({
-        TableName: Device_TABLE_NAME,
-        KeyConditionExpression: "serialNumber = :a",
-        ExpressionAttributeValues: {
-            ":a": values
-        }
-      }, (err, data) => {
-        if (err) {
-          console.log(err);
-          callback( null, err );
-        } else {
-          //console.log(data.Count);
-          callback( null, data );
-        }
-      });
+let findDataBySerialNumber = ( serialNumber ) => {
+  var queryParams = {
+    TableName: config.DYNAMODB_TABLE_NAME,
+    KeyConditionExpression: "serialNumber = :a",
+    ExpressionAttributeValues: {
+        ":a": serialNumber
+    }
+  }
+  return dynamoDb.query(queryParams).promise();
 }
 
 // Put IoT cert info into Dynamodb
-let putCertinfo = ( iotcert, values,callback ) => {
-
-  dynamoDb.update({
-    TableName: Device_TABLE_NAME,
+let putCertinfo = ( serialNumber, certificateArn ) => {
+  var updateParams = {
+    TableName: config.DYNAMODB_TABLE_NAME,
     Key:{
-        "serialNumber": values
+        "serialNumber": serialNumber
     },
     UpdateExpression: "set certinfo = :r",
     ExpressionAttributeValues:{
-        ":r": iotcert
+        ":r": certificateArn
     },
     ReturnValues:"UPDATED_NEW"
-  }, (err, data) => {
-    if (err) {
-      console.log(err);
-      callback( err );
-    } else {
-      callback( null,data );
-    }
-  });
+  }
+  return dynamoDb.update(updateParams).promise();
 }
 
-// Apply cert & Attach thing, policy
-let applycert = ( serialNumber, callback ) => {
-
-  AWS.config.update({region: config.region});
-  var iot = new AWS.Iot();
-  var params = {
-    setAsActive: true || false
+let createCert = ( serialNumber ) => {
+  // Create certificate
+  var createCertParams = {
+    setAsActive: true
   };
-  // Create cert
-  iot.createKeysAndCertificate(params, function(err, certdata) {
-    console.log("certdata:");
-    console.log(certdata);
-
-    if (err) console.log(err, err.stack); // an error occurred
-    else{
-
-       // Create IoT Policy for above cert
-       var params = {
-        policyDocument: config.PILICY_DOCUMENT, /* required */
-        policyName: serialNumber /* required */
-      };
-      iot.createPolicy(params, function(err, data) {
-        if (err) console.log(err, err.stack); // an error occurred
-        else{
-          console.log(data);
-
-          // Attach policy for cert
-          var params = {
-            policyName: serialNumber, /* required */
-            target: certdata.certificateArn /* required */
-          };
-          iot.attachPolicy(params, function(err, data) {
-            if (err) console.log(err, err.stack); // an error occurred
-            else {
-
-              // Create thing for cert
-              var params = {
-                thingName: serialNumber, /* required */
-                attributePayload: {
-                  attributes: {
-                    'RegistrationWay': 'CVM'
-                  },
-                  merge: true || false
-                }
-              };
-              iot.createThing(params, function(err, data) {
-                if (err) console.log(err, err.stack); // an error occurred
-                else {
-
-                  // Attach thing for cert
-                  var params = {
-                    principal: certdata.certificateArn, /* required */
-                    thingName: serialNumber /* required */
-                  };
-
-                  iot.attachThingPrincipal(params, function(err, thingdata) {
-                    if (err) console.log(err, err.stack); // an error occurred
-                    else {
-                      callback( null,certdata );
-                    }
-                  });
-                }
-              });
-            }
-          });
-        }
-      });
-    }
-  });
-}
-
-// Get VeriSign Class 3 Public Primary G5 root CA certificate
-let getIoTRootCA = ( callback ) => {
-  const RootCA_URL = config.RootCA_URL;
-  https.get(RootCA_URL, ( response ) => {
-
-    var body = [];
-    //console.log(response.statusCode);
-    //console.log(response.headers);
-    //console.log(response);
-
-    response.on('data', function (chunk) {
-        body.push(chunk);
+  return iot.createKeysAndCertificate(createCertParams).promise().then(certdata => {
+    console.log("create certificate:");
+    console.log(JSON.stringify(certdata));
+    // Attach policy & thing for cert in parallel
+    var attachPolicyParams = {
+      policyName: serialNumber, 
+      target: certdata.certificateArn 
+    };
+    var attachThingParams = {
+      thingName: serialNumber,
+      principal: certdata.certificateArn
+    };
+    return Promise.all([
+      iot.attachPolicy(attachPolicyParams).promise(),
+      iot.attachThingPrincipal(attachThingParams).promise()
+    ]).then(() => {
+      console.log('attached policy and thing to certificate')
+      return certdata;
     });
-
-    response.on('end', function () {
-        body = Buffer.concat(body);
-        //console.log(body.toString());
-        callback( null, body.toString() );
-    });
-
   })
 }
 
-module.exports = {
+// Apply cert & Attach thing, policy
+let issueCert = ( serialNumber ) => {
+  // Create Policy & Thing in parallel
+  var createPolicyParams = {
+    policyName: serialNumber,
+    policyDocument: config.POLICY_DOCUMENT 
+  };
+  var createThingParams = {
+    thingName: serialNumber,
+    attributePayload: {
+      attributes: {
+        'RegistrationWay': 'CVM'
+      },
+      merge: true
+    }
+  };
+  return Promise.all([
+    iot.createPolicy(createPolicyParams).promise(),
+    iot.createThing(createThingParams).promise(),
+  ]).then(values => {
+    console.log('created policy and thing', values)
+    return createCert(serialNumber);
+  });
+}
 
+let reissueCert = ( serialNumber, certificateArn ) => {
+  // Detach the certificate Policy and Thing in parallel
+  var detachPolicyParams = {
+    policyName: serialNumber,
+    target: certificateArn
+  };
+  var detachThingParams = {
+    thingName: serialNumber,
+    principal: certificateArn
+  };
+  return Promise.all([
+    iot.detachPolicy(detachPolicyParams).promise(),
+    iot.detachThingPrincipal(detachThingParams).promise()
+  ]).then(() => {
+    console.log('detached policy and thing')
+    // Update certificate to inactive and delete
+    var certificateId = certificateArn.split('/')[1];
+    var updateCertParams = {
+      certificateId: certificateId,
+      newStatus: 'INACTIVE'
+    };
+    return iot.updateCertificate(updateCertParams).promise().then(() => {
+      console.log('updated certificate to inactive')
+      var deleteCertParams = {
+        certificateId: certificateId,
+        forceDelete: false
+      };
+      return iot.deleteCertificate(deleteCertParams).promise().then(() => {
+          console.log('certificate deleted');
+          return createCert(serialNumber)
+      });
+    });
+  });
+}
+
+let filterKeys = (obj) => {
+    // Filter out keys that are not allowed 
+    const blacklist = new RegExp(config.IOT_SHADOW_BLACKLIST_KEYS);
+    const whitelist = new RegExp(config.IOT_SHADOW_WHITELIST_KEYS || '.*');
+    Object.keys(obj).forEach(key => (!key.match(whitelist) || key.match(blacklist)) && delete obj[key])
+    return obj;
+}
+
+let getShadow = ( serialNumber ) => {
+  // Get reported state for thing
+  var params = {
+    thingName: serialNumber
+  }
+  return iotdata.getThingShadow(params).promise().then(data => {
+    console.log('get payload', data.payload)
+    var payload = JSON.parse(data.payload)
+    // If no reported state return empty obj
+    if (!('reported' in payload['state'])) {
+      return {}
+    }
+    var reported = payload['state']['reported']
+    // Remove keys that are now allowed
+    return filterKeys(reported);
+  })
+}
+
+let updateShadow = ( serialNumber, desired ) => {
+  // Remove keys that are now allowed
+  var desired = filterKeys(desired);
+  // Set desired state for thing (only reported state is updated by device)
+  var params = {
+    thingName: serialNumber,
+    payload: Buffer.from(JSON.stringify({ state: { desired: desired } }))
+  };
+  return iotdata.updateThingShadow(params).promise().then(data => {
+    console.log('update payload', data.payload)
+    var payload = JSON.parse(data.payload)
+    // If no reported state return empty obj
+    if (!('desired' in payload['state'])) {
+      return {}
+    }
+    return payload['state']['desired']
+  })
+}
+
+// Get VeriSign Class 3 Public Primary G5 root CA certificate
+let getIoTRootCA = () => {
+  return new Promise((resolve, reject) => {
+    // Make an https request 
+    https.get(config.ROOT_CA_URL, ( response ) => {
+      var body = [];
+      response.on('data', function (chunk) {
+          body.push(chunk);
+      });
+      response.on('end', function () {
+          body = Buffer.concat(body);
+          resolve(body.toString());
+      });
+      response.on('error', reject);
+    })
+  });
+}
+
+module.exports = {
     findDataBySerialNumber,
     putCertinfo,
-    getIoTRootCA,
-    applycert
+    issueCert,
+    reissueCert,
+    getShadow,
+    updateShadow,
+    getIoTRootCA
 }

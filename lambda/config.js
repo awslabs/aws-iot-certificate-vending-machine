@@ -1,27 +1,24 @@
 // import Lambda Environment variables
 var environment = process.env;
-//var environment = {"DynamoDB_TABLE_NAME":"deviceInfo","REGION":"us-west-2"}
-// Table name var 
-var config = {
-    DynamoDB_TABLE_NAME: environment.DynamoDB_TABLE_NAME,
-    DYNAMODB_TABLE_REGION: environment.REGION
+
+const config = {
+  DYNAMODB_TABLE_NAME: environment.DYNAMODB_TABLE_NAME,
+  REGION: environment.REGION,
+  POLICY_DOCUMENT: 
+  `{
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": "iot:*",
+        "Resource": "*"
+      }
+    ]
+  }`,
+  IOT_SHADOW_WHITELIST_KEYS: null,
+  IOT_SHADOW_BLACKLIST_KEYS: 'deviceToken|serialNumber',
+  IOT_DATA_ENDPOINT: environment.IOT_DATA_ENDPOINT,
+  ROOT_CA_URL: 'https://www.amazontrust.com/repository/AmazonRootCA1.pem'
 };
-
-
-// In actual production, the policy document should be generated dynamically.
-config.PILICY_DOCUMENT = `{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": "iot:*",
-      "Resource": "*"
-    }
-  ]
-}
-`;
-
-// VeriSign Class 3 Public Primary G5 root CA certificateVeriSign Class 3 Public Primary G5 root CA certificate
-config.RootCA_URL = 'https://www.symantec.com/content/en/us/enterprise/verisign/roots/VeriSign-Class%203-Public-Primary-Certification-Authority-G5.pem';
 
 module.exports = config;
